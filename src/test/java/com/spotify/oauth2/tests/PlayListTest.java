@@ -46,7 +46,7 @@ public class PlayListTest  extends BaseTest{
 	@Description("This is the description")	
 	@Test(description= "Should be create a playlist")
 	public void ShouldBeableTocreatePlaylist() {
-		Playlist requestPlaylist = playlistBuilder(generateName(),generateDescription(),false);
+		Playlist requestPlaylist = playlistBuilder(generateName(), generateDescription(), false);
 		Response response = PlaylistApi.post(requestPlaylist);
 		assertStatusCode(response.statusCode(), 201);
 		assertPlaylistEqual(response.as(Playlist.class), requestPlaylist);
