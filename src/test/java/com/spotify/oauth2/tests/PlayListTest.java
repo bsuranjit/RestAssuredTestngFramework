@@ -48,8 +48,8 @@ public class PlayListTest  extends BaseTest{
 	public void ShouldBeableTocreatePlaylist() {
 		Playlist requestPlaylist = playlistBuilder(generateName(),generateDescription(),false);
 		Response response = PlaylistApi.post(requestPlaylist);
-		assertStatusCode(response.statusCode(),201);
-		assertPlaylistEqual(response.as(Playlist.class),requestPlaylist);
+		assertStatusCode(response.statusCode(), 201);
+		assertPlaylistEqual(response.as(Playlist.class), requestPlaylist);
 		
 		}
 
