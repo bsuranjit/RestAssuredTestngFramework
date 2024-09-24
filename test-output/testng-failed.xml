@@ -5,7 +5,7 @@
     <classes>
       <class name="com.spotify.oauth2.tests.PlayListTest">
         <methods>
-          <include name="ShouldBeableTocreatePlaylist"/>
+          <include name="ShouldBeableToGetAPlaylist"/>
           <include name="beforeMethod"/>
         </methods>
       </class> <!-- com.spotify.oauth2.tests.PlayListTest -->
