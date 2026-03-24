@@ -5,7 +5,11 @@
     <classes>
       <class name="com.spotify.oauth2.tests.PlayListTest">
         <methods>
+          <include name="ShouldBeableToUpdateAPlaylist"/>
+          <include name="ShouldnotBeableTocreatePlaylistWithExpiredToken"/>
           <include name="ShouldBeableToGetAPlaylist"/>
+          <include name="ShouldBeableTocreatePlaylist"/>
+          <include name="ShouldnotBeableTocreatePlaylistWithoutname"/>
           <include name="beforeMethod"/>
         </methods>
       </class> <!-- com.spotify.oauth2.tests.PlayListTest -->

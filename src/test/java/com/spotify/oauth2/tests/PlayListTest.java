@@ -57,7 +57,7 @@ public class PlayListTest  extends BaseTest{
 	public void ShouldBeableToGetAPlaylist() {
 		Playlist requestPlaylist = playlistBuilder("Updated Playlist Name","Updated playlist description",true);
 		Response response = PlaylistApi.get(DataLoader.getInstance().getPlaylistId());
-		assertStatusCode(response.statusCode(),200);
+		assertStatusCode(response.statusCode(),200																							);
 		assertPlaylistEqual(response.as(Playlist.class),requestPlaylist);
 		}
 	@Test
