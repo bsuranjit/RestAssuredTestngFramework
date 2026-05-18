@@ -17,8 +17,60 @@ public class ConfigLoader {
         }
         return configLoader;
     }
-
     public String getClientId() {
+        // Check system property first (-D parameter from Jenkins/Maven)
+        String prop = System.getProperty("CLIENT_ID");
+        if (prop != null && !prop.isEmpty()) return prop;
+        // Fall back to environment variable (Docker)
+        String env = System.getenv("CLIENT_ID");
+        if (env != null && !env.isEmpty()) return env;
+        // Fall back to properties file (local)
+        String fileProp = properties.getProperty("client_id");
+        if (fileProp != null) return fileProp;
+        throw new RuntimeException("CLIENT_ID not found");
+    }
+
+    public String getClientSecret() {
+        String prop = System.getProperty("CLIENT_SECRET");
+        if (prop != null && !prop.isEmpty()) return prop;
+        String env = System.getenv("CLIENT_SECRET");
+        if (env != null && !env.isEmpty()) return env;
+        String fileProp = properties.getProperty("client_secret");
+        if (fileProp != null) return fileProp;
+        throw new RuntimeException("CLIENT_SECRET not found");
+    }
+
+    public String getRefreshToken() {
+        String prop = System.getProperty("REFRESH_TOKEN");
+        if (prop != null && !prop.isEmpty()) return prop;
+        String env = System.getenv("REFRESH_TOKEN");
+        if (env != null && !env.isEmpty()) return env;
+        String fileProp = properties.getProperty("refresh_token");
+        if (fileProp != null) return fileProp;
+        throw new RuntimeException("REFRESH_TOKEN not found");
+    }
+    public String getGrantType() {
+        String prop = System.getProperty("GRANT_TYPE");
+        if (prop != null && !prop.isEmpty()) return prop;
+        String env = System.getenv("GRANT_TYPE");
+        if (env != null && !env.isEmpty()) return env;
+        String fileProp = properties.getProperty("grant_type");
+        if (fileProp != null) return fileProp;
+        throw new RuntimeException("grant_type not found");
+    }
+
+    public String getUserId() {
+        String prop = System.getProperty("USER_ID");
+        if (prop != null && !prop.isEmpty()) return prop;
+        String env = System.getenv("USER_ID");
+        if (env != null && !env.isEmpty()) return env;
+        String fileProp = properties.getProperty("user_id");
+        if (fileProp != null) return fileProp;
+        throw new RuntimeException("USER_ID not found");
+    }
+}
+
+   /* public String getClientId() {
         // First check environment variable (Docker/Jenkins)
         String env = System.getenv("CLIENT_ID");
         if (env != null) return env;
@@ -62,7 +114,7 @@ public class ConfigLoader {
         throw new RuntimeException(
             "user_id not found in env or config.properties");
     }
-}
+}*/
 
 /*package com.spotify.oauth2.utils;
 import java.util.Properties;
