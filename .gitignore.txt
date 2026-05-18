@@ -1,6 +1,0 @@
-target
-.classpath
-allure-results/
-test output
-.ignore
-setting
