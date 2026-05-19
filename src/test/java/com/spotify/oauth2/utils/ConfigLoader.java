@@ -8,6 +8,79 @@ public class ConfigLoader {
     private static ConfigLoader configLoader;
 
     private ConfigLoader() {
+        // your existing custom property loader utility cleanly
+        properties = PropertyUtils.propertyLoader("config.properties");
+    }
+
+    //Added synchronized to make the initialization thread-safe for parallel execution
+    public static synchronized ConfigLoader getInstance() {
+        if (configLoader == null) {
+            configLoader = new ConfigLoader();
+        }
+        return configLoader;
+    }
+
+    /**
+     *  Centralized 3-tier hierarchy lookup engine.
+     * Keeps code DRY and eliminates duplicate lines across all getters.
+     */
+    private String getPropertyOrEnv(String systemAndEnvKey, String fileKey) {
+        // Tier 1: Check System Properties (-D flag from Maven/Jenkins)
+        String value = System.getProperty(systemAndEnvKey);
+        if (value != null && !value.trim().isEmpty()) return value.trim();
+
+        // Tier 2: Check Environment Variables (Docker containers)
+        value = System.getenv(systemAndEnvKey);
+        if (value != null && !value.trim().isEmpty()) return value.trim();
+
+        // Tier 3: Check Local Properties File
+        value = properties.getProperty(fileKey);
+        if (value != null && !value.trim().isEmpty()) return value.trim();
+
+        // Fail-fast if missing everywhere
+        throw new RuntimeException("Critical configuration key not found! Checked System Property/Env: [" 
+                + systemAndEnvKey + "] and File Key: [" + fileKey + "]");
+    }
+
+    //  streamlined property getters passing both casing variations safely (Fixes FIX 2)
+    public String getClientId() {
+        return getPropertyOrEnv("CLIENT_ID", "client_id");
+    }
+
+    public String getClientSecret() {
+        return getPropertyOrEnv("CLIENT_SECRET", "client_secret");
+    }
+
+    public String getRefreshToken() {
+        return getPropertyOrEnv("REFRESH_TOKEN", "refresh_token");
+    }
+
+    public String getGrantType() {
+        return getPropertyOrEnv("GRANT_TYPE", "grant_type");
+    }
+
+    public String getUserId() {
+        return getPropertyOrEnv("USER_ID", "user_id");
+    }
+}
+
+
+
+
+
+
+
+
+/*package com.spotify.oauth2.utils;
+
+import java.util.Properties;
+
+public class ConfigLoader {
+
+    private final Properties properties;
+    private static ConfigLoader configLoader;
+
+    private ConfigLoader() {
         properties = PropertyUtils.propertyLoader("config.properties");
     }
 
@@ -68,7 +141,7 @@ public class ConfigLoader {
         if (fileProp != null) return fileProp;
         throw new RuntimeException("USER_ID not found");
     }
-}
+}*/
 
    /* public String getClientId() {
         // First check environment variable (Docker/Jenkins)
