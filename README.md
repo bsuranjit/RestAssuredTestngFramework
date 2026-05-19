@@ -1,6 +1,6 @@
 # 🎵 Spotify API Test Automation Framework
 
-> Enterprise-grade REST API automation framework built from scratch using Java, REST Assured, and TestNG — tested against the **live Spotify Web API** with full OAuth2 token management, parallel execution, and Jenkins CI/CD integration.
+> Enterprise-grade REST API automation framework built from scratch using Java, REST Assured, and TestNG — tested against the **live Spotify Web API** with full OAuth2 token management, parallel execution, Docker containerization, and Jenkins CI/CD integration.
 
 ---
 
@@ -12,20 +12,22 @@
 - [Project Structure](#project-structure)
 - [Design Patterns](#design-patterns)
 - [Test Scenarios](#test-scenarios)
-- [How to Run](#how-to-run)
+- [How to Run Locally](#how-to-run-locally)
+- [Docker](#docker)
 - [CI/CD Pipeline](#cicd-pipeline)
 - [Test Reports](#test-reports)
+- [Author](#author)
 
 ---
 
 ## Overview
 
-This framework automates REST API testing for the [Spotify Web API](https://developer.spotify.com/documentation/web-api/) — a real-world, OAuth2-protected production API. It was designed and built from scratch to demonstrate enterprise-level API test automation practices including automated token management, reusable request specifications, POJO-based serialization, and parallel test execution.
+This framework automates REST API testing for the [Spotify Web API](https://developer.spotify.com/documentation/web-api/) — a real-world, OAuth2-protected production API. It was designed and built from scratch to demonstrate enterprise-level API test automation practices including automated token management, reusable request specifications, POJO-based serialization, parallel test execution, Docker containerization, and Jenkins CI/CD integration.
 
 **Live CI/CD build results:**
 ```
 Tests run: 5 | Failures: 0 | Errors: 0 | Skipped: 0
-BUILD SUCCESS — Total time: 27 seconds
+BUILD SUCCESS — Total time: 22 seconds (Docker) / 27 seconds (Jenkins)
 ```
 
 ---
@@ -43,6 +45,7 @@ BUILD SUCCESS — Total time: 27 seconds
 | JavaFaker | 1.0.2 | Dynamic test data generation |
 | AspectJ | 1.9.22 | Allure + TestNG integration |
 | Maven Surefire | 3.2.5 | Test runner & parallel config |
+| Docker | Latest | Containerized test execution |
 | Jenkins | Latest | CI/CD pipeline |
 | GitHub | - | Version control & pipeline trigger |
 
@@ -85,10 +88,18 @@ BUILD SUCCESS — Total time: 27 seconds
 ## Key Features
 
 ### ✅ Automated OAuth2 Token Management
-The `TokenManager` class automatically detects when an access token has expired (HTTP 401 response) and renews it by firing a POST request to the Spotify token endpoint — without any manual intervention. This means the Jenkins pipeline can run on any schedule without breaking due to token expiry.
+The `TokenManager` class automatically detects when an access token has expired (HTTP 401 response) and renews it by firing a POST request to the Spotify token endpoint — without any manual intervention. This means the Jenkins pipeline and Docker container can run on any schedule without breaking due to token expiry.
 
 ```
 Flow: API Call → 401 Detected → POST /api/token → Fresh Token → Retry
+```
+
+### ✅ Docker Containerization
+The framework runs inside a Docker container — guaranteeing identical test execution on any machine, any OS, and any CI/CD environment. No "works on my machine" problems.
+
+```bash
+docker build -t spotify-test-framework .
+docker run -e CLIENT_ID=xxx -e CLIENT_SECRET=xxx spotify-test-framework
 ```
 
 ### ✅ Reusable REST Assured Specifications
@@ -122,36 +133,36 @@ src/
 │   └── RestAssuredFramework/
 │       └── App.java
 │
-└── test/java/
-    └── com/spotify/oauth2/
-        │
-        ├── api/                          # API layer
-        │   ├── RestResource.java         # HTTP method wrappers (GET/POST/PUT/DELETE)
-        │   ├── Route.java                # API endpoint constants
-        │   ├── SpecBuilder.java          # Reusable RequestSpec & ResponseSpec
-        │   ├── StatusCode.java           # HTTP status code constants
-        │   ├── TokenManager.java         # OAuth2 token renewal (Singleton)
-        │   │
-        │   └── applicationApi/
-        │       └── PlaylistApi.java      # Business-level API abstraction layer
-        │
-        ├── pojo/                         # Data models (Jackson + Lombok)
-        │   ├── Error.java
-        │   ├── ExternalUrls.java
-        │   ├── InnerError.java
-        │   ├── Owner.java
-        │   ├── Playlist.java
-        │   └── Tracks.java
-        │
-        ├── tests/                        # Test classes
-        │   ├── BaseTest.java             # Test base class (setup/teardown)
-        │   └── PlayListTest.java         # Playlist CRUD test scenarios
-        │
-        └── utils/                        # Utility classes
-            ├── ConfigLoader.java         # Environment & config management
-            ├── DataLoader.java           # Test data loader
-            ├── FakerUtils.java           # Dynamic data generation
-            └── PropertyUtils.java        # Properties file reader
+└── test/
+    ├── java/
+    │   └── com/spotify/oauth2/
+    │       ├── api/
+    │       │   ├── RestResource.java
+    │       │   ├── Route.java
+    │       │   ├── SpecBuilder.java
+    │       │   ├── StatusCode.java
+    │       │   ├── TokenManager.java
+    │       │   └── applicationApi/
+    │       │       └── PlaylistApi.java
+    │       ├── pojo/
+    │       │   ├── Error.java
+    │       │   ├── ExternalUrls.java
+    │       │   ├── InnerError.java
+    │       │   ├── Owner.java
+    │       │   ├── Playlist.java
+    │       │   └── Tracks.java
+    │       ├── tests/
+    │       │   ├── BaseTest.java
+    │       │   └── PlayListTest.java
+    │       └── utils/
+    │           ├── ConfigLoader.java
+    │           ├── DataLoader.java
+    │           ├── FakerUtils.java
+    │           └── PropertyUtils.java
+    └── resources/
+        ├── config.properties
+        ├── data.properties
+        └── allure.properties
 ```
 
 ---
@@ -162,7 +173,6 @@ src/
 Ensures only one token renewal process runs at a time across all parallel threads — preventing race conditions and duplicate refresh requests during concurrent test execution.
 
 ### Builder Pattern — POJOs with Lombok
-All POJO classes use Lombok `@Builder` to enable clean, readable object construction in test code:
 ```java
 Playlist playlist = Playlist.builder()
     .name(faker.name().fullName())
@@ -172,9 +182,7 @@ Playlist playlist = Playlist.builder()
 ```
 
 ### Facade Pattern — `PlaylistApi`
-The application API layer acts as a facade, hiding the complexity of REST Assured request building from test classes. Tests call readable business methods instead of raw HTTP calls:
 ```java
-// In tests — clean and readable
 PlaylistApi.post(playlist);
 PlaylistApi.get(playlistId);
 PlaylistApi.update(playlistId, updatedPlaylist);
@@ -194,23 +202,24 @@ PlaylistApi.update(playlistId, updatedPlaylist);
 
 ---
 
-## How to Run
+## How to Run Locally
 
 ### Prerequisites
 - Java 11+
 - Maven 3.6+
 - Spotify Developer account with app credentials
 
-### Environment Variables Required
-```bash
+### Environment Variables
+```
 BASE_URI=https://api.spotify.com
 ACCOUNT_BASE_URI=https://accounts.spotify.com
 CLIENT_ID=your_spotify_client_id
 CLIENT_SECRET=your_spotify_client_secret
 REFRESH_TOKEN=your_refresh_token
+USER_ID=your_spotify_user_id
 ```
 
-> ⚠️ **Never hardcode credentials.** Always pass them as environment variables or via your CI/CD system.
+> ⚠️ Never hardcode credentials. Always pass them as environment variables.
 
 ### Run all tests
 ```bash
@@ -219,59 +228,71 @@ mvn clean test \
   -DACCOUNT_BASE_URI=https://accounts.spotify.com
 ```
 
-### Run with Allure report
+### Generate Allure report
 ```bash
-mvn clean test
-mvn allure:report
 mvn allure:serve
 ```
 
-### Run specific test suite
+---
+
+## Docker
+
+Run the entire test suite inside a Docker container — identical results on any machine.
+
+### Prerequisites
+- [Docker Desktop](https://www.docker.com/products/docker-desktop) installed and running
+
+### Build the image
 ```bash
-mvn clean test -DsuiteXmlFile=testng.xml
+docker build -t spotify-test-framework .
 ```
+
+### Run tests
+```bash
+docker run \
+  -e CLIENT_ID=your_spotify_client_id \
+  -e CLIENT_SECRET=your_spotify_client_secret \
+  -e REFRESH_TOKEN=your_refresh_token \
+  -e USER_ID=your_spotify_user_id \
+  spotify-test-framework
+```
+
+### Expected output
+```
+Tests run: 5, Failures: 0, Errors: 0, Skipped: 0
+BUILD SUCCESS
+Total time: 22 seconds
+```
+
+### Why Docker?
+- ✅ Identical execution on any OS — Windows, Mac, Linux
+- ✅ No environment setup required on new machines
+- ✅ Clean isolated container for every test run
+- ✅ Credentials passed securely as environment variables
+- ✅ Ready for cloud CI/CD environments
 
 ---
 
 ## CI/CD Pipeline
 
-The framework is integrated with **Jenkins** and triggered automatically on GitHub pushes.
+Integrated with **Jenkins** — triggered automatically on every GitHub push.
 
-**Pipeline flow:**
 ```
-GitHub Push
-    ↓
-Jenkins detects change
-    ↓
-git pull from https://github.com/bsuranjit/RestAssuredTestngFramework
-    ↓
-mvn clean test (with environment variable injection)
-    ↓
-5 parallel threads execute simultaneously
-    ↓
-Allure report generated
-    ↓
-BUILD SUCCESS / FAILURE reported
+GitHub Push → Jenkins pulls → mvn clean test → 5 parallel threads → BUILD SUCCESS
 ```
 
-**Sample Jenkins build output:**
+**Sample build output:**
 ```
 Tests run: 5, Failures: 0, Errors: 0, Skipped: 0
-BUILD SUCCESS
-Total time: 27.063 s
+BUILD SUCCESS — Total time: 27.063 s
 ```
 
 ---
 
 ## Test Reports
 
-Allure reports are generated after each test run and include:
-- Full request and response details for every API call
-- Step-by-step test execution breakdown
-- Pass / fail status per test method
-- Historical trend across builds
+Allure reports generated after each run include full request/response details, step-by-step execution breakdown, and historical trends.
 
-To view the report locally:
 ```bash
 mvn allure:serve
 ```
@@ -282,7 +303,8 @@ mvn allure:serve
 
 **Suranjit Biswas**
 - GitHub: [@bsuranjit](https://github.com/bsuranjit)
-- LinkedIn: *(add your LinkedIn URL here)*
+- LinkedIn: [linkedin.com/in/suranjit-biswas-21932b216](https://linkedin.com/in/suranjit-biswas-21932b216)
+- Email: biswassuranjit76@gmail.com
 
 ---
 
