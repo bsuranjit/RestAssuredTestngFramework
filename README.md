@@ -86,6 +86,50 @@ BUILD SUCCESS — Total time: 22 seconds (Docker) / 27 seconds (Jenkins)
 
 ---
 
+### CI/CD & Execution Flow
+
+The diagram below shows the complete end-to-end execution flow — from a GitHub push all the way through to the Allure report:
+
+```mermaid
+graph TD
+    GH[📦 GitHub Repository] -->|Push triggers build| J[⚙️ Jenkins CI/CD Pipeline]
+    J -->|docker build + mvn clean test| D
+
+    subgraph D[🐳 Docker Container]
+        TS[🧪 TestNG Suite\n5 Parallel Threads]
+        TS --> PA[PlaylistApi\nApplication Layer - Facade Pattern]
+        PA --> SB[SpecBuilder\nReusable Request Setup]
+        PA --> TM[🔐 TokenManager\nOAuth2 Singleton Pattern]
+        SB --> RR[REST Assured\nHTTP Client]
+        TM -->|Auto-renews token on 401| RR
+    end
+
+    RR -->|GET / POST / PUT| SPOT[🎵 Spotify Web API\napi.spotify.com]
+    SPOT -->|JSON Response| RR
+    RR -->|Jackson Deserialize| POJO[POJO Layer\nPlaylist · Owner · Tracks]
+    POJO -->|Assert results| RESULT[✅ Test Results\n5/5 PASS]
+    RESULT -->|Generate| AR[📊 Allure Report\n100% Pass Rate]
+
+    style GH fill:#24292e,color:#fff
+    style J fill:#2E75B6,color:#fff
+    style D fill:#1D9E75,color:#fff
+    style SPOT fill:#1DB954,color:#fff
+    style TM fill:#C0392B,color:#fff
+    style AR fill:#1D9E75,color:#fff
+    style RESULT fill:#1D9E75,color:#fff
+```
+
+**Flow summary:**
+- **GitHub push** → triggers Jenkins build automatically
+- **Jenkins** → builds Docker image and runs `mvn clean test`
+- **Docker** → provides identical execution environment on any machine
+- **TokenManager** → automatically renews OAuth2 token when expired (no manual intervention)
+- **5 parallel threads** → execute simultaneously with zero data collision
+- **Allure** → generates visual report with full request/response details
+
+---
+
+
 ## Key Features
 
 ### ✅ Automated OAuth2 Token Management
