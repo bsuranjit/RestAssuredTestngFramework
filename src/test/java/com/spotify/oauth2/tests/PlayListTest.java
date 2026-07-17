@@ -81,7 +81,8 @@ public class PlayListTest  extends BaseTest{
 		Playlist requestPlaylist = playlistBuilder(generateName(),generateDescription(),false);
 		Response response =PlaylistApi.post(invalid_token,requestPlaylist);
 		assertStatusCode(response.statusCode(),401);
-		assertError(response.as(Error.class),401,"Invalid access token");
+		//assertError(response.as(Error.class),401,"Invalid access token");
+		assertError(response.as(Error.class),401,"Missing/invalid/expired access token");
 		}
 	
 	@Step()
@@ -107,6 +108,7 @@ public class PlayListTest  extends BaseTest{
 	public void assertError(Error responseErr,  int expectedStatusCode, String expectedMsg) {
 		assertThat(responseErr.getError().getStatus(),equalTo(expectedStatusCode));
 		assertThat(responseErr.getError().getMessage(),equalTo(expectedMsg));
+		//assertThat(actualError.getMessage(), containsString("access token"));
 		}
 	
 }
