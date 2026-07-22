@@ -26,9 +26,13 @@ public class TokenManager {
 				System.out.println("Token is good to use");
 			}
 		}
-		catch (Exception e) {
-			throw new RuntimeException("Abbort failed to get token");
-		}
+catch (Exception e) {
+    e.printStackTrace();
+    throw new RuntimeException("Abbort failed to get token: " + e.getMessage(), e);
+}
+		//catch (Exception e) {
+			//throw new RuntimeException("Abbort failed to get token");
+		//}
 		return access_token;
 }
 	private static Response renewToken() {
@@ -38,10 +42,14 @@ public class TokenManager {
 		formParams.put("refresh_token",ConfigLoader.getInstance().getRefreshToken());
 		formParams.put("grant_type",ConfigLoader.getInstance().getGrantType());
 		Response response = Restresource.postAccount(formParams);
+if (response.statusCode()!= 200) {
+    throw new RuntimeException("ABORT!!! Renew token failed. Status: "
+        + response.statusCode() + " Body: " + response.getBody().asString());
+}
 		
-	if (response.statusCode()!= 200) {
-		throw new RuntimeException("ABORT!!! Renew token failed");
-	}
+	//if (response.statusCode()!= 200) {
+		//throw new RuntimeException("ABORT!!! Renew token failed");
+	//}
 		return response;
 		
 	}
