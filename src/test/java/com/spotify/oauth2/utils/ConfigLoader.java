@@ -6,11 +6,22 @@ public class ConfigLoader {
 
     private final Properties properties;
     private static ConfigLoader configLoader;
-
-    private ConfigLoader() {
-        // your existing custom property loader utility cleanly
-        properties = PropertyUtils.propertyLoader("config.properties");
+private ConfigLoader() {
+    // Try to load the properties file, but don't crash if it's missing —
+    // Jenkins/Docker supply credentials via system properties/env vars instead.
+    Properties loaded;
+    try {
+        loaded = PropertyUtils.propertyLoader("config.properties");
+    } catch (RuntimeException e) {
+        loaded = new Properties();
     }
+    properties = loaded;
+}
+
+   // private ConfigLoader() {
+        // your existing custom property loader utility cleanly
+       // properties = PropertyUtils.propertyLoader("config.properties");
+   // }
 
     //Added synchronized to make the initialization thread-safe for parallel execution
     public static synchronized ConfigLoader getInstance() {
