@@ -3,3 +3,5 @@ target
 allure-results
 test-output/
 allure-results/
+src/test/resources/config.properties
+src/test/java/resources/config.properties

@@ -1,0 +1,5 @@
+client_id=047569ce00f8407f89ee3d4754f3cd58
+client_secret=your_spotify_client_secret
+refresh_token=your_refresh_token
+grant_type=refresh_token
+user_id=31whbf4p4ftvebp6cnzrpyyll44i
