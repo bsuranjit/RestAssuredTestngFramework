@@ -282,7 +282,7 @@ mvn allure:serve
 
 **Suranjit Biswas**
 - GitHub: [@bsuranjit](https://github.com/bsuranjit)
-- LinkedIn: *(add your LinkedIn URL here)*
+- LinkedIn: (www.linkedin.com/in/suranjit-biswas-21932b216)
 
 ---
 
