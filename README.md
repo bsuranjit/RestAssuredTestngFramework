@@ -281,7 +281,7 @@ mvn allure:serve
 ## Author
 
 **Suranjit Biswas**
-- GitHub: [@bsuranjit](https://github.com/bsuranjit/RestAssuredTestngFramework)
+- GitHub: [@bsuranjit](https://github.com/bsuranjit)
 - LinkedIn: (www.linkedin.com/in/suranjit-biswas-21932b216)
 
 ---
