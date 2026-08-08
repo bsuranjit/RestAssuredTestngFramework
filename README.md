@@ -1,6 +1,8 @@
 # 🎵 Spotify API Test Automation Framework
 
-> Enterprise-grade REST API automation framework built from scratch using Java, REST Assured, and TestNG — tested against the **live Spotify Web API** with full OAuth2 token management, parallel execution, Docker containerization, and Jenkins CI/CD integration.
+[![Spotify API Tests](https://github.com/bsuranjit/RestAssuredTestngFramework/actions/workflows/maven-tests.yml/badge.svg)](https://github.com/bsuranjit/RestAssuredTestngFramework/actions)
+
+> Enterprise-grade REST API automation framework built from scratch using Java, REST Assured, and TestNG — tested against the **live Spotify Web API** with full OAuth2 token management, parallel execution, Docker containerization, and dual CI/CD integration (Jenkins + GitHub Actions).
 
 ---
 
@@ -15,7 +17,7 @@
 - [Test Scenarios](#test-scenarios)
 - [How to Run Locally](#how-to-run-locally)
 - [Docker](#docker)
-- [CI/CD Pipeline](#cicd-pipeline)
+- [CI/CD Pipelines](#cicd-pipelines)
 - [Test Reports](#test-reports)
 - [Author](#author)
 
@@ -23,12 +25,12 @@
 
 ## Overview
 
-This framework automates REST API testing for the [Spotify Web API](https://developer.spotify.com/documentation/web-api/) — a real-world, OAuth2-protected production API. It was designed and built from scratch to demonstrate enterprise-level API test automation practices including automated token management, reusable request specifications, POJO-based serialization, parallel test execution, Docker containerization, and Jenkins CI/CD integration.
+This framework automates REST API testing for the [Spotify Web API](https://developer.spotify.com/documentation/web-api/) — a real-world, OAuth2-protected production API. It was designed and built from scratch to demonstrate enterprise-level API test automation practices including automated token management, reusable request specifications, POJO-based serialization, parallel test execution, Docker containerization, and dual CI/CD integration across both self-hosted (Jenkins) and cloud-native (GitHub Actions) pipelines.
 
 **Live CI/CD build results:**
 ```
 Tests run: 5 | Failures: 0 | Errors: 0 | Skipped: 0
-BUILD SUCCESS — Total time: 22 seconds (Docker) / 27 seconds (Jenkins)
+BUILD SUCCESS — Total time: 22 seconds (Docker) / 27 seconds (Jenkins) / 22 seconds (GitHub Actions)
 ```
 
 ---
@@ -47,7 +49,8 @@ BUILD SUCCESS — Total time: 22 seconds (Docker) / 27 seconds (Jenkins)
 | AspectJ | 1.9.22 | Allure + TestNG integration |
 | Maven Surefire | 3.2.5 | Test runner & parallel config |
 | Docker | Latest | Containerized test execution |
-| Jenkins | Latest | CI/CD pipeline |
+| Jenkins | Latest | Self-hosted CI/CD pipeline |
+| GitHub Actions | Latest | Cloud-native CI/CD pipeline |
 | GitHub | - | Version control & pipeline trigger |
 
 ---
@@ -88,14 +91,16 @@ BUILD SUCCESS — Total time: 22 seconds (Docker) / 27 seconds (Jenkins)
 
 ### CI/CD & Execution Flow
 
-The diagram below shows the complete end-to-end execution flow — from a GitHub push all the way through to the Allure report:
+The diagram below shows the complete end-to-end execution flow — from a GitHub push all the way through to the Allure report. This project runs on **two independent CI/CD systems in parallel** on every push:
 
 ```mermaid
 graph TD
     GH[📦 GitHub Repository] -->|Push triggers build| J[⚙️ Jenkins CI/CD Pipeline]
+    GH -->|Push triggers workflow| GA[☁️ GitHub Actions]
     J -->|docker build + mvn clean test| D
+    GA -->|mvn clean test on GitHub-hosted runner| D
 
-    subgraph D[🐳 Docker Container]
+    subgraph D[🐳 Test Execution]
         TS[🧪 TestNG Suite\n5 Parallel Threads]
         TS --> PA[PlaylistApi\nApplication Layer - Facade Pattern]
         PA --> SB[SpecBuilder\nReusable Request Setup]
@@ -112,6 +117,7 @@ graph TD
 
     style GH fill:#24292e,color:#fff
     style J fill:#2E75B6,color:#fff
+    style GA fill:#2088FF,color:#fff
     style D fill:#1D9E75,color:#fff
     style SPOT fill:#1DB954,color:#fff
     style TM fill:#C0392B,color:#fff
@@ -120,8 +126,9 @@ graph TD
 ```
 
 **Flow summary:**
-- **GitHub push** → triggers Jenkins build automatically
-- **Jenkins** → builds Docker image and runs `mvn clean test`
+- **GitHub push** → triggers both Jenkins (self-hosted) and GitHub Actions (cloud-native) simultaneously
+- **Jenkins** → builds Docker image and runs `mvn clean test` on a local Windows server
+- **GitHub Actions** → runs `mvn clean test` on a GitHub-hosted Ubuntu runner, credentials injected via GitHub Secrets
 - **Docker** → provides identical execution environment on any machine
 - **TokenManager** → automatically renews OAuth2 token when expired (no manual intervention)
 - **5 parallel threads** → execute simultaneously with zero data collision
@@ -133,7 +140,7 @@ graph TD
 ## Key Features
 
 ### ✅ Automated OAuth2 Token Management
-The `TokenManager` class automatically detects when an access token has expired (HTTP 401 response) and renews it by firing a POST request to the Spotify token endpoint — without any manual intervention. This means the Jenkins pipeline and Docker container can run on any schedule without breaking due to token expiry.
+The `TokenManager` class automatically detects when an access token has expired (HTTP 401 response) and renews it by firing a POST request to the Spotify token endpoint — without any manual intervention. This means the CI/CD pipelines and Docker container can run on any schedule without breaking due to token expiry.
 
 ```
 Flow: API Call → 401 Detected → POST /api/token → Fresh Token → Retry
@@ -165,14 +172,14 @@ The framework tests both success paths and failure paths — including expired t
 ### ✅ Allure Test Reporting
 Allure reports provide rich visual test execution reports with request/response details, step-by-step breakdowns, and pass/fail history.
 
-### ✅ Jenkins CI/CD Integration
-Full pipeline integration — Jenkins pulls from GitHub, compiles, executes tests with environment variable injection, and reports results automatically.
+### ✅ Dual CI/CD Integration
+The framework runs on **both** Jenkins (self-hosted) and GitHub Actions (cloud-native) simultaneously — demonstrating versatility across enterprise on-premise and modern cloud-native automation approaches. Both pipelines inject credentials securely via environment variables (Jenkins Build Parameters / GitHub Secrets), with zero secrets committed to source control.
 
 ---
 
 ## ⚙️ Engineering Challenges & Solutions
 
-Building an enterprise-grade framework from scratch involves solving real-world constraints that tutorials never cover. Here are the four core challenges encountered during development and exactly how each was resolved:
+Building an enterprise-grade framework from scratch involves solving real-world constraints that tutorials never cover. Here are the core challenges encountered during development and exactly how each was resolved:
 
 ### 1. The "Token Expiry" Bottleneck
 
@@ -186,17 +193,18 @@ Flow: API Call → 401 Detected → TokenManager.renewToken() → Fresh Token �
 
 ---
 
-### 2. Ensuring "Works on My Machine" Parity
+### 2. Ensuring "Works on My Machine" Parity Across Four Environments
 
-**Challenge:** Developing on a local machine (macOS/Windows) often leads to environmental dependencies that fail when moved to a shared Jenkins server or a different developer's environment (e.g., mismatched Java versions or library paths).
+**Challenge:** Developing on a local machine (Windows/Eclipse) often leads to environmental dependencies that fail when moved to a shared Jenkins server, a Docker container, or a cloud-hosted GitHub Actions runner (e.g., mismatched Java versions, missing config files, or stale credentials in one environment but not another).
 
-**Solution:** I containerized the entire framework using **Docker**. By creating a standardized `Dockerfile`, I decoupled the test environment from the host OS. This ensures the test suite runs with 100% consistency across my local environment, Jenkins agents, and any future cloud-based execution platform.
+**Solution:** I containerized the entire framework using **Docker**, and validated the exact same test suite across four independent environments: local Eclipse, Jenkins (self-hosted), Docker, and GitHub Actions (cloud-hosted). This surfaced — and resolved — a real-world class of bugs where the same root cause (an expired OAuth token) manifested differently in each environment: a stale git branch pointer, a cached Docker layer, a hardcoded Jenkins parameter, and a missing GitHub Secret. Refactored `ConfigLoader` to gracefully fall back across system properties → environment variables → local file, so the same codebase runs correctly whether credentials come from a local file, Docker `-e` flags, Jenkins build parameters, or GitHub Secrets.
 
 | Environment | Tests | Result | Time |
 |---|---|---|---|
 | Local Eclipse | 5/5 | ✅ PASS | ~15s |
-| Docker Container | 5/5 | ✅ PASS | 36s |
-| Jenkins CI/CD | 5/5 | ✅ PASS | 14s |
+| Docker Container | 5/5 | ✅ PASS | 22s |
+| Jenkins CI/CD | 5/5 | ✅ PASS | 27s |
+| GitHub Actions | 5/5 | ✅ PASS | 22s |
 
 ---
 
@@ -212,9 +220,9 @@ Flow: API Call → 401 Detected → TokenManager.renewToken() → Fresh Token �
 
 ### 4. Improving Debugging Efficiency
 
-**Challenge:** When a test fails in a CI/CD pipeline, reading raw console logs is time-consuming and often lacks sufficient context for a quick root-cause analysis.
+**Challenge:** When a test fails in a CI/CD pipeline, reading raw console logs is time-consuming and often lacks sufficient context for a quick root-cause analysis. Generic, swallowed exception messages made this worse — a caught exception that just says "failed to get token" hides whether the real cause is a bad credential, a network issue, or a missing config value.
 
-**Solution:** I integrated **Allure Reporting** with the framework. By leveraging `@Step` annotations and automatic attachment of request/response payloads, I transformed CI/CD failure logs into rich, visual reports. This reduced the "mean time to repair" (MTTR) by allowing stakeholders to pinpoint failures visually without needing to re-run the build locally.
+**Solution:** I integrated **Allure Reporting** with the framework, using `@Step` annotations and automatic attachment of request/response payloads to turn CI/CD failure logs into rich, visual reports. I also refactored exception handling in `TokenManager` to surface the actual underlying error (HTTP status code and response body) instead of a generic message — cutting root-cause diagnosis time from hours to minutes in practice.
 
 ---
 
@@ -253,10 +261,16 @@ src/
     │           ├── FakerUtils.java
     │           └── PropertyUtils.java
     └── resources/
-        ├── config.properties
+        ├── config.properties.example
         ├── data.properties
         └── allure.properties
+
+.github/
+└── workflows/
+    └── maven-tests.yml
 ```
+
+> Note: `config.properties` (real credentials) is `.gitignore`'d and not committed. Copy `config.properties.example` to `config.properties` and fill in your own values to run locally.
 
 ---
 
@@ -310,9 +324,10 @@ CLIENT_ID=your_spotify_client_id
 CLIENT_SECRET=your_spotify_client_secret
 REFRESH_TOKEN=your_refresh_token
 USER_ID=your_spotify_user_id
+GRANT_TYPE=refresh_token
 ```
 
-> ⚠️ Never hardcode credentials. Always pass them as environment variables.
+> ⚠️ Never hardcode credentials. Always pass them as environment variables. Copy `src/test/resources/config.properties.example` to `config.properties` for local runs, or supply the values above as system properties / environment variables.
 
 ### Run all tests
 ```bash
@@ -323,7 +338,8 @@ mvn clean test \
 
 ### Generate Allure report
 ```bash
-mvn allure:serve
+mvn clean test
+allure serve target/allure-results
 ```
 
 ---
@@ -347,6 +363,7 @@ docker run \
   -e CLIENT_SECRET=your_spotify_client_secret \
   -e REFRESH_TOKEN=your_refresh_token \
   -e USER_ID=your_spotify_user_id \
+  -e GRANT_TYPE=refresh_token \
   spotify-test-framework
 ```
 
@@ -366,9 +383,12 @@ Total time: 22 seconds
 
 ---
 
-## CI/CD Pipeline
+## CI/CD Pipelines
 
-Integrated with **Jenkins** — triggered automatically on every GitHub push.
+This project intentionally runs on **two independent CI/CD systems** to demonstrate both self-hosted enterprise-style and modern cloud-native automation.
+
+### Jenkins (self-hosted)
+Runs on a local Jenkins server. Pulls from GitHub, compiles, executes tests with parameters injected at build time, and reports results.
 
 ```
 GitHub Push → Jenkins pulls → mvn clean test → 5 parallel threads → BUILD SUCCESS
@@ -380,6 +400,26 @@ Tests run: 5, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS — Total time: 27.063 s
 ```
 
+### GitHub Actions (cloud-native)
+Defined in [`.github/workflows/maven-tests.yml`](.github/workflows/maven-tests.yml). Triggers automatically on every push to `main`, runs on a GitHub-hosted Ubuntu runner with zero local infrastructure, and pulls credentials securely from **GitHub Secrets**.
+
+```
+GitHub Push → GitHub-hosted runner spins up → mvn clean test → BUILD SUCCESS
+```
+
+**Sample workflow run:** [View latest runs →](https://github.com/bsuranjit/RestAssuredTestngFramework/actions)
+
+```yaml
+- name: Run tests
+  run: >
+    mvn clean test
+    -DCLIENT_ID=${{ secrets.CLIENT_ID }}
+    -DCLIENT_SECRET=${{ secrets.CLIENT_SECRET }}
+    -DREFRESH_TOKEN=${{ secrets.REFRESH_TOKEN }}
+    -DUSER_ID=${{ secrets.USER_ID }}
+    -DGRANT_TYPE=${{ secrets.GRANT_TYPE }}
+```
+
 ---
 
 ## Test Reports
@@ -387,7 +427,8 @@ BUILD SUCCESS — Total time: 27.063 s
 Allure reports generated after each run include full request/response details, step-by-step execution breakdown, and historical trends.
 
 ```bash
-mvn allure:serve
+mvn clean test
+allure serve target/allure-results
 ```
 
 ---
@@ -404,4 +445,3 @@ mvn allure:serve
 ## License
 
 This project is open source and available under the [MIT License](LICENSE).
- 
