@@ -106,7 +106,7 @@ graph TD
         PA --> SB[SpecBuilder\nReusable Request Setup]
         PA --> TM[🔐 TokenManager\nOAuth2 Singleton Pattern]
         SB --> RR[REST Assured\nHTTP Client]
-        TM -->|Auto-renews token on 401| RR
+        TM -->|Renews token before expiry| RR
     end
 
     RR -->|GET / POST / PUT| SPOT[🎵 Spotify Web API\napi.spotify.com]
@@ -130,7 +130,7 @@ graph TD
 - **Jenkins** → builds Docker image and runs `mvn clean test` on a local Windows server
 - **GitHub Actions** → runs `mvn clean test` on a GitHub-hosted Ubuntu runner, credentials injected via GitHub Secrets
 - **Docker** → provides identical execution environment on any machine
-- **TokenManager** → automatically renews OAuth2 token when expired (no manual intervention)
+- **TokenManager** → automatically renews the OAuth2 token shortly before it expires (no manual intervention)
 - **5 parallel threads** → execute simultaneously with zero data collision
 - **Allure** → generates visual report with full request/response details
 
@@ -140,10 +140,10 @@ graph TD
 ## Key Features
 
 ### ✅ Automated OAuth2 Token Management
-The `TokenManager` class automatically detects when an access token has expired (HTTP 401 response) and renews it by firing a POST request to the Spotify token endpoint — without any manual intervention. This means the CI/CD pipelines and Docker container can run on any schedule without breaking due to token expiry.
+The `TokenManager` class caches the access token along with its expiry time (`expires_in` minus a 300-second safety buffer) and renews it *before* it expires by sending a refresh-token POST request to the Spotify token endpoint — without any manual intervention. `getToken()` is `synchronized`, so when tests run in parallel only one thread renews and the others reuse the fresh token. This means the CI/CD pipelines and Docker container can run on any schedule without breaking due to token expiry.
 
 ```
-Flow: API Call → 401 Detected → POST /api/token → Fresh Token → Retry
+Flow: getToken() → token near expiry? → POST /api/token (refresh_token grant) → Cache new token + expiry → API Call
 ```
 
 ### ✅ Docker Containerization
@@ -185,10 +185,10 @@ Building an enterprise-grade framework from scratch involves solving real-world 
 
 **Challenge:** The Spotify Web API requires OAuth2 authentication, and tokens expire frequently. Hardcoding tokens or manually refreshing them breaks any CI/CD or nightly scheduling, making it impossible to achieve "hands-off" automation.
 
-**Solution:** I implemented a custom `TokenManager` class using the **Singleton Pattern**. The framework now performs a proactive "check-and-refresh" logic: if a request returns a `401 Unauthorized` status code, the `TokenManager` transparently handles the POST request to the token endpoint to fetch a new token, updates the header, and retries the original request — all without test interruption.
+**Solution:** I implemented a custom `TokenManager` class using the **Singleton Pattern**. The framework performs proactive "check-and-refresh" logic: before each request, `TokenManager.getToken()` checks the cached expiry time (with a 300-second buffer), and if the token is about to expire it transparently POSTs to the token endpoint using the refresh-token grant, caches the new token, and returns it — so requests are sent with a valid token and tests are never interrupted.
 
 ```
-Flow: API Call → 401 Detected → TokenManager.renewToken() → Fresh Token → Retry → ✅ Pass
+Flow: getToken() → expiry check → (if near expiry) refresh via /api/token → Fresh Token → API Call → ✅ Pass
 ```
 
 ---
@@ -445,4 +445,3 @@ allure serve target/allure-results
 ## License
 
 This project is open source and available under the [MIT License](LICENSE).
- 
