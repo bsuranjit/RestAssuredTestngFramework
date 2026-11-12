@@ -131,7 +131,7 @@ graph TD
 - **GitHub Actions** → runs `mvn clean test` on a GitHub-hosted Ubuntu runner, credentials injected via GitHub Secrets
 - **Docker** → provides identical execution environment on any machine
 - **TokenManager** → automatically renews the OAuth2 token shortly before it expires (no manual intervention)
-- **5 parallel threads** → execute simultaneously with zero data collision
+- **5 parallel threads** → execute simultaneously with no data collisions observed
 - **Allure** → generates visual report with full request/response details
 
 ---
@@ -161,7 +161,7 @@ docker run -e CLIENT_ID=xxx -e CLIENT_SECRET=xxx spotify-test-framework
 All request bodies and response payloads are mapped to Java POJOs using Jackson Databind. Lombok annotations (`@Getter`, `@Setter`, `@Builder`) eliminate boilerplate getter/setter code.
 
 ### ✅ Parallel Test Execution
-Tests run across 5 concurrent threads via Maven Surefire configuration — significantly reducing total execution time compared to sequential runs.
+Tests run across 5 concurrent threads via Maven Surefire configuration — reducing total execution time compared to sequential runs.
 
 ### ✅ Dynamic Test Data Generation
 `FakerUtils.java` uses JavaFaker to generate unique playlist names and descriptions for every test run — ensuring tests are never dependent on hardcoded static data.
@@ -279,7 +279,7 @@ src/
 ## Design Patterns
 
 ### Singleton Pattern — `TokenManager`
-Ensures only one token renewal process runs at a time across all parallel threads — preventing race conditions and duplicate refresh requests during concurrent test execution.
+Provides a single shared token cache for all parallel threads. `getToken()` is `synchronized`, so only one thread renews an expiring token while the others reuse it — preventing race conditions and duplicate refresh requests during concurrent test execution.
 
 ### Builder Pattern — POJOs with Lombok
 ```java
@@ -399,7 +399,7 @@ GitHub Push → Jenkins pulls → mvn clean test → 5 parallel threads → BUIL
 **Sample build output:**
 ```
 Tests run: 5, Failures: 0, Errors: 0, Skipped: 0
-BUILD SUCCESS — Total time: 27.063 s
+BUILD SUCCESS — Total time: ~31 s (one sample run; typical range 30–35 s)
 ```
 
 ### GitHub Actions (cloud-native)
