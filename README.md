@@ -2,7 +2,7 @@
 
 [![Spotify API Tests](https://github.com/bsuranjit/RestAssuredTestngFramework/actions/workflows/maven-tests.yml/badge.svg)](https://github.com/bsuranjit/RestAssuredTestngFramework/actions)
 
-> Enterprise-grade REST API automation framework built from scratch using Java, REST Assured, and TestNG — tested against the **live Spotify Web API** with full OAuth2 token management, parallel execution, Docker containerization, and dual CI/CD integration (Jenkins + GitHub Actions).
+> Enterprise-style REST API automation framework built from scratch using Java, REST Assured, and TestNG — tested against the **live Spotify Web API** with full OAuth2 token management, parallel execution, Docker containerization, and dual CI/CD integration (Jenkins + GitHub Actions).
 
 ---
 
@@ -30,7 +30,7 @@ This framework automates REST API testing for the [Spotify Web API](https://deve
 **Live CI/CD build results:**
 ```
 Tests run: 5 | Failures: 0 | Errors: 0 | Skipped: 0
-BUILD SUCCESS — Total time: 22 seconds (Docker) / 27 seconds (Jenkins) / 22 seconds (GitHub Actions)
+BUILD SUCCESS — Total time: ~40–45 seconds (Docker) / ~30–35 seconds (Jenkins) / ~30–35 seconds (GitHub Actions)
 ```
 
 ---
@@ -179,7 +179,7 @@ The framework runs on **both** Jenkins (self-hosted) and GitHub Actions (cloud-n
 
 ## ⚙️ Engineering Challenges & Solutions
 
-Building an enterprise-grade framework from scratch involves solving real-world constraints that tutorials never cover. Here are the core challenges encountered during development and exactly how each was resolved:
+Building an enterprise-style framework from scratch involves solving real-world constraints that tutorials never cover. Here are the core challenges encountered during development and exactly how each was resolved:
 
 ### 1. The "Token Expiry" Bottleneck
 
@@ -199,12 +199,14 @@ Flow: getToken() → expiry check → (if near expiry) refresh via /api/token �
 
 **Solution:** I containerized the entire framework using **Docker**, and validated the exact same test suite across four independent environments: local Eclipse, Jenkins (self-hosted), Docker, and GitHub Actions (cloud-hosted). This surfaced — and resolved — a real-world class of bugs where the same root cause (an expired OAuth token) manifested differently in each environment: a stale git branch pointer, a cached Docker layer, a hardcoded Jenkins parameter, and a missing GitHub Secret. Refactored `ConfigLoader` to gracefully fall back across system properties → environment variables → local file, so the same codebase runs correctly whether credentials come from a local file, Docker `-e` flags, Jenkins build parameters, or GitHub Secrets.
 
-| Environment | Tests | Result | Time |
+| Environment | Tests | Result | Typical Time |
 |---|---|---|---|
-| Local Eclipse | 5/5 | ✅ PASS | ~15s |
-| Docker Container | 5/5 | ✅ PASS | 22s |
-| Jenkins CI/CD | 5/5 | ✅ PASS | 27s |
-| GitHub Actions | 5/5 | ✅ PASS | 22s |
+| Local Eclipse | 5/5 | ✅ PASS | ~15–20s |
+| Docker Container | 5/5 | ✅ PASS | ~40–45s |
+| Jenkins CI/CD | 5/5 | ✅ PASS | ~30–35s |
+| GitHub Actions | 5/5 | ✅ PASS | ~30–35s |
+
+*Times vary from run to run depending on network latency to the Spotify API and runner load.*
 
 ---
 
@@ -214,7 +216,7 @@ Flow: getToken() → expiry check → (if near expiry) refresh via /api/token �
 
 **Solution:**
 - **Data Isolation:** Integrated `JavaFaker` to generate unique, random playlist names and descriptions for every execution, ensuring that concurrent threads never collide on test data.
-- **Thread Safety:** Designed the `TokenManager` to be thread-safe using the Singleton pattern, preventing multiple threads from firing simultaneous refresh requests — which preserves API rate limits and prevents authentication errors.
+- **Thread Safety:** Made `TokenManager.getToken()` `synchronized` so that when tests run in parallel, only one thread refreshes an expired token while the others reuse it. This prevents duplicate refresh requests, protects API rate limits and avoids authentication errors.
 
 ---
 
@@ -222,7 +224,7 @@ Flow: getToken() → expiry check → (if near expiry) refresh via /api/token �
 
 **Challenge:** When a test fails in a CI/CD pipeline, reading raw console logs is time-consuming and often lacks sufficient context for a quick root-cause analysis. Generic, swallowed exception messages made this worse — a caught exception that just says "failed to get token" hides whether the real cause is a bad credential, a network issue, or a missing config value.
 
-**Solution:** I integrated **Allure Reporting** with the framework, using `@Step` annotations and automatic attachment of request/response payloads to turn CI/CD failure logs into rich, visual reports. I also refactored exception handling in `TokenManager` to surface the actual underlying error (HTTP status code and response body) instead of a generic message — cutting root-cause diagnosis time from hours to minutes in practice.
+**Solution:** I integrated **Allure Reporting** with the framework, using `@Step` annotations and automatic attachment of request/response payloads to turn CI/CD failure logs into rich, visual reports. I also refactored exception handling in `TokenManager` to surface the actual underlying error (HTTP status code and response body) instead of a generic message — making failures much faster to diagnose.
 
 ---
 
@@ -371,7 +373,7 @@ docker run \
 ```
 Tests run: 5, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Total time: 22 seconds
+Total time: ~40–45 seconds
 ```
 
 ### Why Docker?
